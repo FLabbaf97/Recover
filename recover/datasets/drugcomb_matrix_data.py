@@ -85,6 +85,9 @@ class DrugCombMatrix:
             in_house_data="without",
             rounds_to_include=(),
     ):
+        print(
+            "=============================== DrugCombMatrix =============================")
+
         self.fp_bits = fp_bits
         self.fp_radius = fp_radius
         self.cell_line = cell_line
@@ -100,8 +103,14 @@ class DrugCombMatrix:
         # Load processed dataset
         saved_file = os.path.join(self.processed_paths, "processed", self.processed_file_name)
         if os.path.isfile(saved_file):
+            print(
+                "=============================== Data is saved =============================")
+
             self.data = torch.load(saved_file)
         else:
+            print(
+                "=============================== Data is not saved. Processe will be called =============================")
+
             Path(os.path.join(self.processed_paths, "processed")).mkdir(parents=True, exist_ok=True)
             self.data = self.process()
 
@@ -172,6 +181,7 @@ class DrugCombMatrix:
         return proc_file_name
 
     def get_blocks(self):
+        print("=============================== get blocks =============================")
         blocks = rsv.get_specific_drug_combo_blocks(
             study_name=self.study_name,
         )["block_id"]
@@ -179,6 +189,9 @@ class DrugCombMatrix:
         return blocks
 
     def process(self):
+        print(
+            "=============================== Process Dataset =============================")
+
 
         print("Processing the dataset, only happens the first time.")
 
