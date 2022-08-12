@@ -191,7 +191,7 @@ class MyBilinearMLPPredictor(torch.nn.Module):
         super(MyBilinearMLPPredictor, self).__init__()
 
         self.num_cell_lines = len(data.cell_line_to_idx_dict.keys())
-        print("number of cell_lines: ", self.num_cell_lines)
+        # print("number of cell_lines: ", self.num_cell_lines)
         # device_type = "mps" if torch.has_mps else "cuda" if torch.cuda.is_available() else "cpu"
         device_type = "cpu"
         self.device = torch.device(device_type)
@@ -239,7 +239,7 @@ class MyBilinearMLPPredictor(torch.nn.Module):
         # self.bilinear_weights, self.bilinear_offsets, self.bilinear_diag = self.build_bilinear_tensor()
 
     def build_bilinear_tensor(self):
-        print("biulding bilinear tensor")
+        # print("biulding bilinear tensor")
 
         # Number of bilinear transformations == the dimension of the layer at which the merge is performed
         # Initialize weights close to identity
@@ -253,18 +253,18 @@ class MyBilinearMLPPredictor(torch.nn.Module):
             + torch.cat([torch.eye(self.merge_dim)[None, :, :]]
                         * self.merge_dim, dim=0)
         )
-        print("1111111111111111")
+        # print("1111111111111111")
         bilinear_offsets = Parameter(
             1 / 100 * torch.randn((self.merge_dim)))
-        print("22222222222222222222")
+        # print("22222222222222222222")
         if self.allow_neg_eigval:
             bilinear_diag = Parameter(
                 1 / 100 * torch.randn((self.merge_dim, self.merge_dim)) + 1)
-        print("333333333333333333")
+        # print("333333333333333333")
         return bilinear_weights, bilinear_offsets, bilinear_diag
 
     def build_before_merge_layers(self):
-        print("biulding before merge layers")
+        # print("biulding before merge layers")
 
         layers_before_merge = []
         for i in range(len(self.layer_dims) - 1 - self.merge_n_layers_before_the_end):
@@ -300,7 +300,7 @@ class MyBilinearMLPPredictor(torch.nn.Module):
         h_1 = self.before_merge_mlp([h_drug_1, cell_lines])[0]
         h_2 = self.before_merge_mlp([h_drug_2, cell_lines])[0]
 
-        print("before merge completed successfully")
+        # print("before merge completed successfully")
 
         # compute <W.h_1, W.h_2> = h_1.T . W.T.W . h_2
         h_1 = self.bilinear_weights.matmul(h_1.T).T
@@ -318,7 +318,7 @@ class MyBilinearMLPPredictor(torch.nn.Module):
 
         # Add offset
         h_1_scal_h_2 += self.bilinear_offsets
-        print("bilinear merge completed successfully")
+        # print("bilinear merge completed successfully")
 
         comb = self.after_merge_mlp([h_1_scal_h_2, cell_lines])[0]
 
