@@ -1,9 +1,10 @@
+from recover.acquisition.acquisition import UCB
 from recover.my_codes.my_model import MyModel, MyTrainer, MyBilinearMLPPredictor, NormalMergeModel
 from recover.datasets.drugcomb_matrix_data import DrugCombMatrix
 from recover.models.models import Baseline
 from recover.models.predictors import BilinearFilmMLPPredictor, BilinearMLPPredictor
 from recover.utils.utils import get_project_root
-from recover.train import train_epoch, eval_epoch, BasicTrainer
+from recover.train import ActiveTrainer, train_epoch, eval_epoch, BasicTrainer
 import os
 from ray import tune
 from importlib import import_module
@@ -15,7 +16,7 @@ from importlib import import_module
 
 pipeline_config = {
     "use_tune": False,  # Unchanged
-    "num_epoch_without_tune": 1000,  # Used only if "use_tune" == False
+    "num_epoch_without_tune": 100,  # Used only if "use_tune" == False
     # "seed": tune.grid_search([2, 3, 4]), # Unchanged
     "seed": 0,
     # Optimizer config
@@ -75,17 +76,28 @@ dataset_config = {  # Unchanged
     "fp_radius": 2
 }
 
+active_learning_config = {
+    "ensemble_size": 5,
+    "acquisition": UCB,
+    "patience_max": 4,
+    "kappa": 1,
+    "kappa_decrease_factor": 1,
+    "n_epoch_between_queries": 500,
+    "acquire_n_at_a_time": 50,
+    "n_initial": 50,
+}
 ########################################################################################################################
 # Configuration that will be loaded
 ########################################################################################################################
 
 configuration = {
-    "trainer": MyTrainer,  # PUT NUM GPU BACK TO 1
+    "trainer": ActiveTrainer,  # PUT NUM GPU BACK TO 1
     "trainer_config": {
         **pipeline_config,
         **predictor_config,
         **model_config,
         **dataset_config,
+        **active_learning_config,
     },
     "summaries_dir": os.path.join(get_project_root(), "RayLogs"),
     "memory": 1800,
