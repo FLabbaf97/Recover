@@ -1,3 +1,4 @@
+from tqdm import trange
 import torch
 import os
 from torch.utils.data import DataLoader
@@ -51,7 +52,7 @@ def train_epoch(data, loader, model, optim):
         "comb_r_squared": epoch_comb_r_squared
     }
 
-    print("Training", summary_dict)
+    # print("Training", summary_dict)
 
     return summary_dict
 
@@ -87,7 +88,7 @@ def eval_epoch(data, loader, model):
         "spearman": epoch_spear
     }
 
-    print("Testing", summary_dict, '\n')
+    # print("Testing", summary_dict, '\n')
 
     all_out = torch.cat(all_out)
 
@@ -284,7 +285,7 @@ class ActiveTrainer(BasicTrainer):
         )
 
         # Acquire new data
-        print("query data")
+        # print("query data")
         query = self.unseen_idxs[torch.argsort(active_scores, descending=True)[:self.acquire_n_at_a_time]]
 
         # Get the best score among unseen examples
@@ -385,7 +386,7 @@ class ActiveTrainer(BasicTrainer):
 
             if early_stop_metrics["comb_r_squared"] > best_eval_r2:
                 best_eval_r2 = early_stop_metrics["comb_r_squared"]
-                print("best early stop r2", best_eval_r2)
+                # print("best early stop r2", best_eval_r2)
                 patience = 0
             else:
                 patience += 1
@@ -457,8 +458,11 @@ def train(configuration):
         ###########################################
 
         trainer = configuration["trainer"](configuration["trainer_config"])
-        for i in range(configuration["trainer_config"]["num_epoch_without_tune"]):
+        # main_bar = configuration["trainer_config"]["num_epoch_without_tune"]
+        for i in trange(configuration["trainer_config"]["num_epoch_without_tune"]):
             trainer.train()
+
+
 
 
 if __name__ == "__main__":
