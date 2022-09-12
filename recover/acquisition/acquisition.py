@@ -56,7 +56,7 @@ class UCB(AbstractAcquisition):
 
         self.kappa *= self.decrease_factor
 
-        return scores.to("cpu")
+        return scores.to("cpu"), mean, std
 
 
 class GreedyAcquisition(AbstractAcquisition):

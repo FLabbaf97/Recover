@@ -61,6 +61,7 @@ class EnsembleModel(torch.nn.Module):
         for _ in range(self.ensemble_size):
             models.append(Baseline(data, config))
 
+        # This make a list of models. Nothing complicated
         self.models = torch.nn.ModuleList(models)
 
     def forward(self, data, drug_drug_batch):

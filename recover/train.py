@@ -46,10 +46,13 @@ def train_epoch(data, loader, model, optim):
         epoch_loss += loss.item()
 
     epoch_comb_r_squared = stats.linregress(all_mean_preds, all_targets).rvalue**2
+    epoch_regress = stats.linregress(all_mean_preds, all_targets)
+
 
     summary_dict = {
         "loss_mean": epoch_loss / num_batches,
-        "comb_r_squared": epoch_comb_r_squared
+        "comb_r_squared": epoch_comb_r_squared,
+        "regress": epoch_regress
     }
 
     # print("Training", summary_dict)
@@ -70,7 +73,7 @@ def eval_epoch(data, loader, model):
     with torch.no_grad():
         for _, drug_drug_batch in enumerate(loader):
             out = model.forward(data, drug_drug_batch)
-
+            print(out)  # see if this is a 5 arrays or only one
             # Save all predictions and targets
             all_out.append(out)
             all_mean_preds.extend(out.mean(dim=1).tolist())
@@ -120,7 +123,7 @@ class BasicTrainer(tune.Trainable):
         )
 
         self.data = dataset.data.to(self.device)
-
+        print(self.data)
         # If a score is the target, we store it in the ddi_edge_response attribute of the data object
         if "target" in config.keys():
             possible_target_dicts = {
@@ -153,8 +156,8 @@ class BasicTrainer(tune.Trainable):
         )
 
         # Initialize model
+        # In case that model is ensemble model, This object has a models variable that contain myltiple basic models
         self.model = config["model"](self.data, config)
-
         # Initialize model with weights from file
         load_model_weights = config.get("load_model_weights", False)
         if load_model_weights:
@@ -167,8 +170,8 @@ class BasicTrainer(tune.Trainable):
 
         self.model = self.model.to(self.device)
         print(self.model)
-
         # Initialize optimizer
+        print(self.model.parameters())
         self.optim = torch.optim.Adam(
             self.model.parameters(),
             lr=config["lr"],
@@ -251,9 +254,12 @@ class ActiveTrainer(BasicTrainer):
 
         # Get the set of top 1% most synergistic combinations
         one_perc = int(0.01 * len(self.unseen_idxs))
+        # lables of unseen data points
         scores = self.data.ddi_edge_response[self.unseen_idxs]
         self.best_score = scores.max()
-        self.top_one_perc = set(self.unseen_idxs[torch.argsort(scores, descending=True)[:one_perc]].numpy())
+        # This is probably for further usage.
+        self.top_one_perc = set(self.unseen_idxs[torch.argsort(
+            scores, descending=True)[:one_perc]].numpy())  # indexes of top one percent high synergies
         self.count = 0
 
     def step(self):
@@ -264,14 +270,16 @@ class ActiveTrainer(BasicTrainer):
 
         # Train on seen examples
         seen_metrics = self.train_between_queries()
+        print(seen_metrics)  # does it have
 
         # Evaluate on valid set
         eval_metrics, _ = self.eval_epoch(self.data, self.valid_loader, self.model)
 
         # Score unseen examples
         unseen_metrics, unseen_preds = self.eval_epoch(self.data, self.unseen_loader, self.model)
+        print("unseen preds: ", unseen_preds)
 
-        active_scores = self.acquisition.get_scores(unseen_preds)
+        active_scores, mean, std = self.acquisition.get_scores(unseen_preds)
 
         # Build summary
         seen_metrics = [("seen/" + k, v) for k, v in seen_metrics.items()]
@@ -325,6 +333,8 @@ class ActiveTrainer(BasicTrainer):
         metrics["log10_med_immediate_regret"] = np.log10(metrics["med_immediate_regret"])
         metrics["min_immediate_regret"] = self.immediate_regrets.min().item()
         metrics["log10_min_immediate_regret"] = np.log10(metrics["min_immediate_regret"])
+        metrics["std_unseen"] = std
+        metrics["mean_predict_unseen"] = mean
 
         # Update the dataloaders
         self.seen_loader, self.unseen_loader = self.update_loaders(self.seen_idxs, self.unseen_idxs)
@@ -381,6 +391,7 @@ class ActiveTrainer(BasicTrainer):
         for _ in range(self.n_epoch_between_queries):
             # Perform several training epochs. Save only metrics from the last epoch
             train_metrics = self.train_epoch(self.data, train_loader, self.model, self.optim)
+            print(train_metrics)
 
             early_stop_metrics, _ = self.eval_epoch(self.data, early_stop_loader, self.model)
 
@@ -460,7 +471,8 @@ def train(configuration):
         trainer = configuration["trainer"](configuration["trainer_config"])
         # main_bar = configuration["trainer_config"]["num_epoch_without_tune"]
         for i in trange(configuration["trainer_config"]["num_epoch_without_tune"]):
-            trainer.train()
+            metrics = trainer.train()
+            print(metrics)
 
 
 
@@ -477,11 +489,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Retrieve configuration
-    my_config = importlib.import_module("recover.config." + args.config)
-    print("Running with configuration from", "recover.config." + args.config)
+    #TODO: uncomment this
+    # my_config = importlib.import_module("recover.config." + args.config)
+    #TODO: remove these 3 lines
+    my_config = importlib.import_module(
+        "recover.config." + "active_learning_bliss_av")
+    my_config.configuration["name"] = "active_learning_bliss_av"
+
+    #TODO: uncomment this
+    # print("Running with configuration from", "recover.config." + args.config)
 
     # Set the name of the log directory after the name of the config file
-    my_config.configuration["name"] = args.config
+    #TODO: uncomment this
+    # my_config.configuration["name"] = args.config
 
     # Train
     train(my_config.configuration)

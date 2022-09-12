@@ -16,9 +16,9 @@ from importlib import import_module
 
 pipeline_config = {
     "use_tune": False,  # Unchanged
-    "num_epoch_without_tune": 100,  # Used only if "use_tune" == False
+    "num_epoch_without_tune": 20,  # Used only if "use_tune" == False
     # "seed": tune.grid_search([2, 3, 4]), # Unchanged
-    "seed": 0,
+    "seed": 2,
     # Optimizer config
     "lr": 1e-4,  # Unchanged
     "weight_decay": 1e-2,  # Unchanged
@@ -29,7 +29,7 @@ pipeline_config = {
 }
 
 predictor_config = {
-    "predictor": NormalMergeModel,
+    "predictor": BilinearMLPPredictor,
     "predictor_layers":
     [
         1024,
